@@ -42,7 +42,7 @@ def ask_decisions(actions: list[dict[str, Any]], auto: str | None) -> dict[str, 
     table.add_column("arguments")
     for i, a in enumerate(actions, 1):
         table.add_row(str(i), a["tool"], "\n".join(f"{k}: {v}" for k, v in a["args"].items()))
-    console.print(Panel(table, title="⏸  Approval needed", subtitle="graph paused · state saved to SQLite",
+    console.print(Panel(table, title="[bold]‖ Approval needed[/bold]", subtitle="graph paused · state saved to SQLite",
                         border_style="yellow", expand=False))
 
     decisions: dict[str, dict[str, Any]] = {}
@@ -62,7 +62,11 @@ def ask_decisions(actions: list[dict[str, Any]], auto: str | None) -> dict[str, 
             new_args = {}
             for key, value in a["args"].items():
                 answer = Prompt.ask(f"      {key}", default=str(value), console=console)
-                new_args[key] = float(answer) if isinstance(value, (int, float)) else answer
+                if isinstance(value, (int, float)):
+                    number = float(answer)
+                    new_args[key] = int(number) if number.is_integer() else number
+                else:
+                    new_args[key] = answer
             decisions[a["id"]] = {"action": "edit", "args": new_args, "reason": "edited by reviewer"}
     return decisions
 
@@ -80,9 +84,9 @@ def run_turn(graph: Any, config: dict[str, Any], payload: Any, auto: str | None,
             for node, update in chunk.items():
                 if node == "__interrupt__":
                     interrupted = update[0].value["actions"]
-                    path.append("review ⏸")
+                    path.append("review ‖ paused")
                     continue
-                if not (node == "review" and path and path[-1] == "review ⏸"):
+                if not (node == "review" and path and path[-1] == "review ‖ paused"):
                     path.append(node)
                 if node == "agent":
                     msg = update["messages"][-1]
@@ -101,7 +105,7 @@ def run_turn(graph: Any, config: dict[str, Any], payload: Any, auto: str | None,
                         result = json.loads(m["content"])
                         style = "red" if result.get("status") == "rejected" or "error" in result else "green"
                         short = ", ".join(f"{k}: {v}" for k, v in list(result.items())[:4])
-                        console.print(f"  [{style}]🔧 {names.get(m['tool_call_id'], 'tool')}[/{style}] [dim]→ {short}[/dim]")
+                        console.print(f"  [{style}]◆ {names.get(m['tool_call_id'], 'tool')}[/{style}] [dim]→ {short}[/dim]")
                     for entry in update.get("audit", []):
                         mark = {"approved": "[green]✔ approved[/green]", "edited": "[cyan]✎ edited + approved[/cyan]",
                                 "rejected": "[red]✘ rejected[/red]"}[entry["decision"]]

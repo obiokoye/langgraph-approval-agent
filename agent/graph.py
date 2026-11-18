@@ -4,7 +4,7 @@
               │
               ├─(only read-only tools)──────────→ tools → agent
               │
-              └─(a risky tool)→ review ⏸ (interrupt) → tools → agent
+              └─(a risky tool)→ review ‖ (interrupt) → tools → agent
 
 `review` calls `interrupt()`, which saves the whole state to the
 checkpointer and stops the run. The run continues only when someone sends
